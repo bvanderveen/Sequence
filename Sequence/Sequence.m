@@ -7,7 +7,7 @@
 
 @end
 
-@interface PullSeqImpl : NSObject {
+@interface PullSeqImpl : Seq {
     PullSeq impl;
 }
 @end
@@ -43,8 +43,10 @@
     if (!tail)
         return self;
     
-    if (tail && ![tail isKindOfClass:[PullSeqImpl class]])
-        [NSException raise:@"IncompatibleSequenceType" format:@"Cannot concat push sequence with '%@'", tail];
+    tail = [tail seq];
+    
+    if (![tail isKindOfClass:[PullSeqImpl class]])
+        [NSException raise:@"IncompatibleSequenceType" format:@"Cannot concat pull sequence with '%@'", tail];
     
     return [[[PullSeqImpl alloc] initWithPull:^ Func () {
         PullSeqImpl *tailImpl = (PullSeqImpl *)tail;
@@ -95,8 +97,7 @@
     if (!tail)
         return self;
     
-    if ([tail isKindOfClass:[NSArray class]])
-        tail = [tail seq];
+    tail = [tail seq];
     
     if (![tail isKindOfClass:[PushSeqImpl class]])
         [NSException raise:@"IncompatibleSequenceType" format:@"Cannot concat push sequence with '%@'", tail];
@@ -132,12 +133,24 @@
     if ([self isKindOfClass:[Seq class]])
         return self;
     
-    if ([self conformsToProtocol:@protocol(NSFastEnumeration)])
+    if ([self conformsToProtocol:@protocol(NSFastEnumeration)]) {
         return [Seq push:^ void(void (^push)(id)) {
             for (id object in (id<NSFastEnumeration>)self) {
                 push(object);
             }
         }];
+    }
+    
+    BOOL isEnumerator = [self isKindOfClass:[NSEnumerator class]];
+    
+    if (isEnumerator || [self respondsToSelector:@selector(objectEnumerator)]) {
+        return [Seq pull:^ Func () {
+            NSEnumerator *enumerator = isEnumerator ? self : [self performSelector:@selector(objectEnumerator)];
+            return [[^ id () {
+                return [enumerator nextObject];
+            } copy] autorelease];
+        }];
+    }
     
     return [[NSArray arrayWithObject:self] seq];
 }
