@@ -18,12 +18,18 @@
 - (id)nextObject {
     if (position == items.count)
         return nil;
-    return [items objectAtIndex:position++];
+    position++;
+    return [items objectAtIndex:position - 1];
 }
 
 - (void)dealloc {
     self.items = nil;
     [super dealloc];
+}
+
+- (NSEnumerator *)objectEnumerator {
+    position = 0;
+    return self;
 }
 
 @end
@@ -214,21 +220,20 @@
     STAssertEquals(actual, expected, @"all are NSString");
 }
 
-// XXX doesn't work right now!
-//- (void)testAllShortcircuits {
-//    NSArray *input = [NSArray arrayWithObjects:@"a", [NSNull null], @"b", @"c", nil];
-//    MockEnumerator *e = [[MockEnumerator new] autorelease];
-//    e.items = input;
-//    
-//    BOOL actualResult = [e all:^ BOOL (id i) { return [i isKindOfClass:[NSString class]]; }];
-//    BOOL expectedResult = NO;
-//    
-//    NSUInteger actualPosition = e.position;
-//    NSUInteger expectedPosition = 1;
-//    
-//    STAssertEquals(actualResult, expectedResult, @"all are not NSString");
-//    STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
-//}
+- (void)testAllShortcircuits {
+    NSArray *input = [NSArray arrayWithObjects:@"a", [NSNull null], @"b", @"c", nil];
+    MockEnumerator *e = [[MockEnumerator new] autorelease];
+    e.items = input;
+    
+    BOOL actualResult = [e all:^ BOOL (id i) { return [i isKindOfClass:[NSString class]]; }];
+    BOOL expectedResult = NO;
+    
+    NSUInteger actualPosition = e.position;
+    NSUInteger expectedPosition = 2;
+    
+    STAssertEquals(actualResult, expectedResult, @"all are not NSString");
+    STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
+}
 
 - (void)testAllNegative {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"b", @"c", [NSNull null], @"a", @"d", nil];
@@ -255,6 +260,21 @@
     BOOL expected = NO;
     
     STAssertEquals(actual, expected, @"any are NSNull");
+}
+
+- (void)testAnyShortcircuits {
+    NSArray *input = [NSArray arrayWithObjects:[NSNull null], [NSNull null], @"c", [NSNull null], [NSNull null], nil];
+    MockEnumerator *e = [[MockEnumerator new] autorelease];
+    e.items = input;
+    
+    BOOL actualResult = [e any:^ BOOL (id i) { return [i isKindOfClass:[NSString class]]; }];
+    BOOL expectedResult = YES;
+    
+    NSUInteger actualPosition = e.position;
+    NSUInteger expectedPosition = 3;
+    
+    STAssertEquals(actualResult, expectedResult, @"all are not NSString");
+    STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
 }
 
 - (void)testSize {

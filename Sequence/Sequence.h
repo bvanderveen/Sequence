@@ -22,15 +22,14 @@ typedef BOOL (^Predicate)(id);
 @interface NSObject (Sequence) 
 
 // converts reciever into a sequence type for use with the other methods 
-// defined in the Sequence category. if the receiver is NSEnumerator or
-// responds to the -[ objectEnumerator] message the returned sequence 
-// contains the items returned by the enumerator. for all other receivers,
-// a single-item sequence containing the receiver is returned. 
+// defined in the Sequence category. if the receiver is responds to 
+// the -[ objectEnumerator] message the returned sequence contains the 
+// items returned by the enumerator. for all other receivers, a 
+// single-item sequence containing the receiver is returned. 
 //
 // if reciever is a sequence self is returned.
 //
-// if the receiver supports copy it is called. if you don't want your object 
-// copied, consider working with sequences of item-returning functions.
+// if the receiver conforms to NSCopying it is copied.
 //
 // sequences live on the heap and are always returned with an effective retain
 // count of 0 (autoreleased).

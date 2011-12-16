@@ -26,7 +26,7 @@ const void *emptySeq;
 
 - (id)initWithItem:(id)item {
     if ((self = [super init])) {
-        if ([item respondsToSelector:@selector(copy)])
+        if ([item conformsToProtocol:@protocol(NSCopying)])
             single = [item copy];
         else 
             single = [item retain];
@@ -190,11 +190,9 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
     if ([self isKindOfClass:[Seq class]])
         return self;
     
-    BOOL isEnumerator = [self isKindOfClass:[NSEnumerator class]];
-    
-    if (isEnumerator || [self respondsToSelector:@selector(objectEnumerator)]) {
+    if ([self respondsToSelector:@selector(objectEnumerator)]) {
         return [Seq pull:^ Func () {
-            NSEnumerator *enumerator = isEnumerator ? self : [self performSelector:@selector(objectEnumerator)];
+            NSEnumerator *enumerator = [self performSelector:@selector(objectEnumerator)];
             return [[^ id () {
                 return [enumerator nextObject];
             } copy] autorelease];
@@ -244,15 +242,39 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
 }
 
 - (BOOL)all:(Predicate)predicate {
-    return [[[self seq] _reduce:^ id (id acc, id i) { 
-        return [NSNumber numberWithBool:[acc boolValue] && predicate(i)];
-    } seed:[NSNumber numberWithBool:YES]] boolValue];
+    NSUInteger i = 0;
+    id item = nil;
+    id seq = [self seq];
+    
+    while (1) {
+        item = [seq _itemAtIndex:i++];
+        
+        if (!item)
+            break;
+        
+        if (!predicate(item))
+            return NO;
+    }
+    
+    return YES;
 }
 
 - (BOOL)any:(Predicate)predicate {
-    return [[[self seq] _reduce:^ id (id acc, id i) { 
-        return [NSNumber numberWithBool:[acc boolValue] || predicate(i)];
-    } seed:[NSNumber numberWithBool:NO]] boolValue];
+    NSUInteger i = 0;
+    id item = nil;
+    id seq = [self seq];
+    
+    while (1) {
+        item = [seq _itemAtIndex:i++];
+        
+        if (!item)
+            break;
+        
+        if (predicate(item))
+            return YES;
+    }
+    
+    return NO;
 }
 
 - (NSUInteger)size {
