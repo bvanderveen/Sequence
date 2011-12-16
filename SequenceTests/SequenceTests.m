@@ -42,6 +42,9 @@
     NSArray *actualArray = [actual array];
     NSArray *expectedArray = [expected array];
     
+    if (actualArray.count != expectedArray.count)
+        STAssertTrue(NO, @"actual.count != expected.count");
+    
     for (int i = 0; i < expectedArray.count; i++) {
         if (i == actualArray.count)
             STAssertTrue(NO, @"expected more elements than contained in actual");
@@ -50,7 +53,6 @@
         id actualItem = [actualArray objectAtIndex:i];
         
         STAssertEqualObjects(expectedItem, actualItem, @"elements differed at index %d", i);
-        
     }
 }
 
@@ -62,7 +64,7 @@
 
 - (void)testArray {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"b", @"c", nil];
-    NSArray *actual = [input array];
+    id actual = [input array];
     NSArray *expected = [NSArray arrayWithObjects:@"a", @"b", @"c", nil];
     
     [self assertActual:actual equalsExpected:expected];
@@ -84,19 +86,109 @@
     STAssertEqualObjects(actual, expected, @"reduce, strings concatenated");
 }
 
-- (void)testConcat {
+- (void)testConcatSingleItemArrays {
     NSArray *head = [NSArray arrayWithObject:@"a"];
     NSArray *tail = [NSArray arrayWithObject:@"b"];
     
-    NSArray *actual = [head concat:tail];
-    Seq *expected = [[NSArray arrayWithObjects:@"a", @"b", nil] seq];
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingleAndMultiItemArray {
+    NSArray *head = [NSArray arrayWithObject:@"a"];
+    NSArray *tail = [NSArray arrayWithObjects:@"b", @"c", @"d", nil];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", @"c", @"d", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatMultiAndSingleItemArray {
+    NSArray *head = [NSArray arrayWithObjects:@"a", @"b", @"c", nil];
+    NSArray *tail = [NSArray arrayWithObject:@"d"];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", @"c", @"d", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingles {
+    NSArray *head = [@"a" seq];
+    NSArray *tail = [@"b" seq];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingleAndSingleItemArray {
+    NSArray *head = [@"a" seq];
+    NSArray *tail = [NSArray arrayWithObject:@"b"];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingleAndMultipleItemArray {
+    NSArray *head = [@"a" seq];
+    NSArray *tail = [NSArray arrayWithObjects:@"b", @"c", @"d", nil];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", @"c", @"d", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingleItemArrayAndSingle {
+    NSArray *head = [NSArray arrayWithObject:@"a"];
+    NSArray *tail = [@"b" seq];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatMultiItemArrayAndSingle {
+    NSArray *head = [NSArray arrayWithObjects:@"a", @"b", @"c", nil];
+    NSArray *tail = [@"d" seq];
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", @"c", @"d", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatSingleAndObject {
+    id head = [@"a" seq];
+    id tail = @"b";
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testConcatObjectAndObject {
+    id head = @"a";
+    id tail = @"b";
+    
+    id actual = [head concat:tail];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", nil];
     
     [self assertActual:actual equalsExpected:expected];
 }
 
 - (void)testFilter {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"aa", @"aaa", @"b", @"bb", @"cc", @"ccc", nil];
-    NSArray *actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
+    id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
     NSArray *expected = [NSArray arrayWithObjects:@"aa", @"bb", @"cc", nil];
     
     [self assertActual:actual equalsExpected:expected];
@@ -172,6 +264,48 @@
     NSUInteger expected = 5;
     
     STAssertEquals(actual, expected, @"size is correct");
+}
+
+- (void)testRangePositive {
+    id actual = [Seq rangeWithStart:0 end:2];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:0], [NSNumber numberWithInteger:1], [NSNumber numberWithInteger:2], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testRangeAcrossZero {
+    id actual = [Seq rangeWithStart:-1 end:1];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:-1], [NSNumber numberWithInteger:0], [NSNumber numberWithInteger:1], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testRangeNegative {
+    id actual = [Seq rangeWithStart:-2 end:0];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:-2], [NSNumber numberWithInteger:-1], [NSNumber numberWithInteger:0], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testRangeBackwardsPositive {
+    id actual = [Seq rangeWithStart:2 end:0];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:2], [NSNumber numberWithInteger:1], [NSNumber numberWithInteger:0], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testRangeBackwardsAcrossZero {
+    id actual = [Seq rangeWithStart:1 end:-1];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:1], [NSNumber numberWithInteger:0], [NSNumber numberWithInteger:-1], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testRangeBackwardsNegative {
+    id actual = [Seq rangeWithStart:0 end:-2];
+    id expected = [NSArray arrayWithObjects:[NSNumber numberWithInteger:0], [NSNumber numberWithInteger:-1], [NSNumber numberWithInteger:-2], nil];
+    
+    [self assertActual:actual equalsExpected:expected];
 }
 
 @end
