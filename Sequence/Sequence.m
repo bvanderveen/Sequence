@@ -2,13 +2,6 @@
 
 const void *emptySeq;
 
-@interface Seq (Internal) 
-
-- (id)reduce:(Reduce)reduce seed:(id)seed;
-- (id)concat:(id)tail;
-
-@end
-
 @interface PullSeqImpl : Seq {
     PullSeq impl;
     id single;
@@ -120,8 +113,9 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
                         state = inTail;
                         goto advance;
                     }
-                    
+                
                     // (implicit fall-through to end)
+                    
                 case end:
                     return nil;
             }
@@ -139,6 +133,7 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
         else
             return nil;
     else {
+        // XXX memoize?
         Func next = impl();
         id item = nil;
         for (NSUInteger i = 0; (item = next()); i++) {
@@ -147,6 +142,38 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
         }
         return nil;
     }
+}
+
+
+- (BOOL)_any:(Predicate)predicate {
+    id item = nil;
+    
+    if (single)
+        return predicate(single);
+    else if (impl) {
+        for (Func next = impl(); (item = next());)
+            if (predicate(item))
+                return YES;
+        
+        return NO;
+    }
+    return NO;
+}
+
+- (BOOL)_all:(Predicate)predicate {
+    id item = nil;
+    
+    if (single)
+        return predicate(single);
+    else if (impl) {
+        for (Func next = impl(); (item = next());)
+            if (!predicate(item))
+                return NO;
+        
+        return YES;
+    }
+    
+    return NO;
 }
 
 @end
@@ -221,9 +248,7 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
 }
 
 - (void)each:(Action)action {
-    id s = [self seq];
-    
-    [s map:^ id (id i) { 
+    [[self seq] map:^ id (id i) { 
         action(i); 
         return nil; 
     }];
@@ -242,39 +267,11 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
 }
 
 - (BOOL)all:(Predicate)predicate {
-    NSUInteger i = 0;
-    id item = nil;
-    id seq = [self seq];
-    
-    while (1) {
-        item = [seq _itemAtIndex:i++];
-        
-        if (!item)
-            break;
-        
-        if (!predicate(item))
-            return NO;
-    }
-    
-    return YES;
+    return [[self seq] _all:predicate];
 }
 
 - (BOOL)any:(Predicate)predicate {
-    NSUInteger i = 0;
-    id item = nil;
-    id seq = [self seq];
-    
-    while (1) {
-        item = [seq _itemAtIndex:i++];
-        
-        if (!item)
-            break;
-        
-        if (predicate(item))
-            return YES;
-    }
-    
-    return NO;
+    return [[self seq] _any:predicate];
 }
 
 - (NSUInteger)size {
