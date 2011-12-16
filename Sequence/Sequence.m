@@ -230,7 +230,7 @@ yieldNext:
     return [[[PullSeqImpl alloc] initWithItem:item] autorelease];
 }
 
-+ (id)empty { return emptySeq; }
++ (id)empty { return (id)emptySeq; }
 
 + (id)rangeWithStart:(NSInteger)start end:(NSInteger)end {
     NSMutableArray *array = [NSMutableArray array];
@@ -255,7 +255,7 @@ yieldNext:
     if ([self isKindOfClass:[Seq class]])
         return self;
     
-    if ([self respondsToSelector:@selector(objectEnumerator)]) {
+    if ([self isKindOfClass:[NSArray class]]) {
         return [Seq pull:^ Func () {
             NSEnumerator *enumerator = [self performSelector:@selector(objectEnumerator)];
             return [[^ id () {
@@ -281,8 +281,7 @@ yieldNext:
 
 - (id)filter:(Predicate)predicate {
     return [[self seq] _reduce:
-            ^ id (id acc, id next) { return predicate(next) ? [acc _concat:[next seq]] : acc; } 
-                   seed:[Seq empty]];
+            ^ id (id acc, id next) { return predicate(next) ? [acc _concat:[next seq]] : acc; } seed:[Seq empty]];
 }
 
 - (void)each:(Action)action {
@@ -312,7 +311,7 @@ yieldNext:
     return [[self seq] _any:predicate];
 }
 
-- (NSUInteger)size {
+- (NSUInteger)count {
     return [[[self seq] _reduce:^ id (id acc, id i) {
         return [NSNumber numberWithUnsignedInteger:[acc unsignedIntegerValue] + 1];
     } seed:[NSNumber numberWithUnsignedInteger:0]] unsignedIntegerValue];
