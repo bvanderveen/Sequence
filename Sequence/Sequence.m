@@ -2,7 +2,30 @@
 
 const void *emptySeq;
 
+enum {
+    ConcatStateBeforeHead,
+    ConcatStateHead,
+    ConcatStateBeforeTail,
+    ConcatStateTail,
+    ConcatStateEnd
+};
+typedef NSInteger ConcatState;
+
+@class PullSeqImpl;
+
+@interface PullSeqConcat : NSObject {
+    PullSeqImpl *head, *tail;
+    Func next;
+    ConcatState state;
+}
+
+- (id)initWithHead:(PullSeqImpl *)leHead tail:(PullSeqImpl *)leTail;
+- (id)next;
+
+@end
+
 @interface PullSeqImpl : Seq {
+@public
     PullSeq impl;
     id single;
 }
@@ -48,7 +71,6 @@ const void *emptySeq;
     return seed;
 }
 
-const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
 
 - (id)_concat:(id)tail {
     if (!tail)
@@ -61,68 +83,8 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
     
     return [[[PullSeqImpl alloc] initWithPull:^ Func () {
         PullSeqImpl *tailImpl = (PullSeqImpl *)tail;
-        
-        __block Func next = nil;
-        __block int state = 0;
-        
-        return [[^ id () {            
-            id nextItem = nil;
-            
-        advance:
-            switch (state) {
-                case beforeHead:
-                    if (single) {
-                        state = beforeTail;
-                        nextItem = single;
-                        goto yieldNext;
-                    }
-                    
-                    if (impl) {
-                        next = impl();
-                        state = inHead;
-                        goto advance;
-                    }
-                    
-                    state = beforeTail;
-                    goto advance;
-                    
-                case inHead:
-                case inTail:
-                    nextItem = next();
-                    
-                    if (!nextItem) {
-                        state = state == inHead ? beforeTail : end;
-                        goto advance;
-                    }
-                    goto yieldNext;
-                    
-                case beforeTail:
-                    if (!tailImpl) {
-                        state = end;
-                        goto yieldNext;
-                    }
-                    
-                    if (tailImpl->single) {
-                        state = end;
-                        nextItem = tailImpl->single;
-                        goto yieldNext;
-                    }
-                    
-                    if (tailImpl->impl) {
-                        next = tailImpl->impl();
-                        state = inTail;
-                        goto advance;
-                    }
-                
-                    // (implicit fall-through to end)
-                    
-                case end:
-                    return nil;
-            }
-        yieldNext:
-            return nextItem;
-            
-        } copy] autorelease];
+        PullSeqConcat *concat = [[[PullSeqConcat alloc] initWithHead:self tail:tailImpl] autorelease];
+        return [[^ id () { return [concat next]; } copy] autorelease];
     }] autorelease];
 }
 
@@ -174,6 +136,82 @@ const int beforeHead = 0, inHead = 1, beforeTail = 2, inTail = 3, end = 4;
     }
     
     return NO;
+}
+
+@end
+
+@implementation PullSeqConcat 
+
+- (id)initWithHead:(PullSeqImpl *)leHead tail:(PullSeqImpl *)leTail {
+    if ((self = [super init])) {
+        head = [leHead retain];
+        tail = [leTail retain];
+    }
+    return self;
+}
+
+- (void)dealloc {
+    [head release];
+    [tail release];
+    [super dealloc];
+}
+
+- (id)next {
+    id nextItem = nil;
+    
+advance:
+    switch (state) {
+        case ConcatStateBeforeHead:
+            if (head->single) {
+                state = ConcatStateBeforeTail;
+                nextItem = head->single;
+                goto yieldNext;
+            }
+            
+            if (head->impl) {
+                next = head->impl();
+                state = ConcatStateHead;
+                goto advance;
+            }
+            
+            state = ConcatStateBeforeTail;
+            goto advance;
+            
+        case ConcatStateHead:
+        case ConcatStateTail:
+            nextItem = next();
+            
+            if (!nextItem) {
+                state = state == ConcatStateHead ? ConcatStateBeforeTail : ConcatStateEnd;
+                goto advance;
+            }
+            goto yieldNext;
+            
+        case ConcatStateBeforeTail:
+            if (!tail) {
+                state = ConcatStateEnd;
+                goto yieldNext;
+            }
+            
+            if (tail->single) {
+                state = ConcatStateEnd;
+                nextItem = tail->single;
+                goto yieldNext;
+            }
+            
+            if (tail->impl) {
+                next = tail->impl();
+                state = ConcatStateTail;
+                goto advance;
+            }
+            
+            // (implicit fall-through to end)
+            
+        case ConcatStateEnd:
+            return nil;
+    }
+yieldNext:
+    return nextItem;
 }
 
 @end
