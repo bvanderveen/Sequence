@@ -128,21 +128,21 @@ typedef NSInteger ConcatState;
 }
 
 - (id)_itemAtIndex:(NSUInteger)index {
-    if (single)
+    if (single) {
         if (index == 0)
             return single;
         else
             return nil;
-        else {
-            // XXX memoize?
-            Func next = impl();
-            id item = nil;
-            for (NSUInteger i = 0; (item = next()); i++) {
-                if (i == index)
-                    return item;
-            }
-            return nil;
+    }
+    else {
+        Func next = impl();
+        id item = nil;
+        for (NSUInteger i = 0; (item = next()); i++) {
+            if (i == index)
+                return item;
         }
+        return nil;
+    }
 }
 
 
@@ -197,6 +197,32 @@ typedef NSInteger ConcatState;
         return length;
     }
     return 0;
+}
+
+- (id)_skip:(NSUInteger)howMany {
+    if (howMany == 0)
+        return self;
+    
+    if (single) {
+        return [Seq empty];
+    }
+    else if (impl) {    
+        return [[[PullSeqImpl alloc] initWithPull:^Func() {
+            // XXX maybe it would be better to defer this to first pull
+            Func next = impl();
+            id item = next();
+            
+            for (NSUInteger i = 0; item && i < howMany; i++)
+                item = next();
+            return next;
+        }] autorelease];
+    }
+    
+    return [Seq empty];
+}
+
+- (id)_take:(NSUInteger)howMany {
+    return nil;
 }
 
 @end
@@ -368,6 +394,14 @@ yieldNext:
 
 - (NSUInteger)length {
     return [[self seq] _length];
+}
+
+- (id)skip:(NSUInteger)howMany {
+    return [[self seq] _skip:howMany];
+}
+
+- (id)take:(NSUInteger)howMany {
+    return [[self seq] _take:howMany];
 }
 
 @end

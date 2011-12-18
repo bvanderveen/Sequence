@@ -34,34 +34,41 @@ typedef BOOL (^Predicate)(id);
 // count of 0 (autoreleased).
 - (id)seq;
 
-
 ////////////////////////////////////////////////////////////////////////////////
-// the following methods always convert the receiver to a sequence type 
-// using -[NSObject seq] before doing anything else.
+// these methods return a sequence which represents a transformation. they do
+// not materialize the receiver.
 ////////////////////////////////////////////////////////////////////////////////
 
 - (id)map:(Map)map;
-- (id)reduce:(Reduce)reduce seed:(id)seed;
 - (id)concat:(id)tail; // -[NSObject seq] is called on tail
 - (id)filter:(Predicate)predicate;
+- (id)skip:(NSUInteger)howMany;
+- (id)take:(NSUInteger)howMany;
+
+////////////////////////////////////////////////////////////////////////////////
+// these methods methods will materialize the reciever.
+////////////////////////////////////////////////////////////////////////////////
+
+// returns the item at the given index
+- (id)itemAtIndex:(NSUInteger)index;
+
+// returns the number of items in the sequence
+- (NSUInteger)length;
 
 // returns true if all of the items in the sequence satisfy the predicate
+// short-circuits if any element fails the predicate.
 - (BOOL)all:(Predicate)predicate;
 
 // returns true if any of the items in the sequence satisfy the predicate
+// short-circuits if any element passes the predicate.
 - (BOOL)any:(Predicate)predicate;
 
 // calls the action for each item in the sequence
 - (void)each:(Action)action;
 
-////////////////////////////////////////////////////////////////////////////////
-// the following methods will materialize the reciever
-////////////////////////////////////////////////////////////////////////////////
-
-// returns the number of items in the sequence
-- (NSUInteger)length;
-- (id)itemAtIndex:(NSUInteger)index;
 // materializes the receiver into an NSArray.
 - (NSArray *)array;
+
+- (id)reduce:(Reduce)reduce seed:(id)seed;
 
 @end

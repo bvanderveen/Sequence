@@ -387,4 +387,60 @@
     [self assertActual:actual equalsExpected:expected];
 }
 
+- (void)testSkipZeroEmpty {
+    id actual = [[Seq empty] skip:0];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipNonZeroEmpty {
+    id actual = [[Seq empty] skip:1];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipZeroSingle {
+    id actual = [@"a" skip:0];
+    id expected = [@"a" seq];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipAllSingle {
+    id actual = [@"a" skip:1];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipMoreSingle {
+    id actual = [@"a" skip:5];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipZero {
+    id actual = [[NSArray arrayWithObjects:@"a", @"b", @"c", nil] skip:0];
+    id expected = [NSArray arrayWithObjects:@"a", @"b", @"c", nil];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipAll {
+    id actual = [[NSArray arrayWithObjects:@"a", @"b", @"c", nil] skip:3];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testSkipMore {
+    id actual = [[NSArray arrayWithObjects:@"a", @"b", @"c", nil] skip:4];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
 @end
