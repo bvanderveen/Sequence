@@ -57,7 +57,7 @@ typedef NSInteger ConcatState;
 }
 
 - (id)_map:(Map)map {
-    if (self == emptySeq) return emptySeq;
+    if (self == emptySeq) return (id)emptySeq;
     
     if (single)
         return [map(single) seq];
@@ -72,7 +72,7 @@ typedef NSInteger ConcatState;
 }
 
 - (id)_filter:(Predicate)predicate {
-    if (self == emptySeq) return emptySeq;
+    if (self == emptySeq) return (id)emptySeq;
     
     if (single)
         return predicate(single) ? [single seq] : [Seq empty];
