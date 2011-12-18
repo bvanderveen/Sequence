@@ -59,7 +59,7 @@ typedef BOOL (^Predicate)(id);
 ////////////////////////////////////////////////////////////////////////////////
 
 // returns the number of items in the sequence
-- (NSUInteger)size;
+- (NSUInteger)length;
 - (id)itemAtIndex:(NSUInteger)index;
 // materializes the receiver into an NSArray.
 - (NSArray *)array;

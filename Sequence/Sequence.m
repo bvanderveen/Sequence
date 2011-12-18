@@ -56,6 +56,21 @@ typedef NSInteger ConcatState;
     [super dealloc];
 }
 
+- (id)_map:(Map)map {
+    if (self == emptySeq) return emptySeq;
+    
+    if (single)
+        return [map(single) seq];
+    else if (impl) {
+        return [[[PullSeqImpl alloc] initWithPull:^ Func () {
+            Func next = impl();
+            return [[^ id () { id i = next(); return i ? map(i) : nil; } copy] autorelease];
+        }] autorelease];
+    }
+    
+    assert(NO);
+}
+
 - (id)_reduce:(Reduce)reduce seed:(id)seed {
     if (self == emptySeq) return seed;
     
@@ -94,25 +109,25 @@ typedef NSInteger ConcatState;
             return single;
         else
             return nil;
-    else {
-        // XXX memoize?
-        Func next = impl();
-        id item = nil;
-        for (NSUInteger i = 0; (item = next()); i++) {
-            if (i == index)
-                return item;
+        else {
+            // XXX memoize?
+            Func next = impl();
+            id item = nil;
+            for (NSUInteger i = 0; (item = next()); i++) {
+                if (i == index)
+                    return item;
+            }
+            return nil;
         }
-        return nil;
-    }
 }
 
 
 - (BOOL)_any:(Predicate)predicate {
-    id item = nil;
-    
     if (single)
         return predicate(single);
     else if (impl) {
+        id item = nil;
+        
         for (Func next = impl(); (item = next());)
             if (predicate(item))
                 return YES;
@@ -122,12 +137,12 @@ typedef NSInteger ConcatState;
     return NO;
 }
 
-- (BOOL)_all:(Predicate)predicate {
-    id item = nil;
-    
+- (BOOL)_all:(Predicate)predicate {    
     if (single)
         return predicate(single);
     else if (impl) {
+        id item = nil;
+        
         for (Func next = impl(); (item = next());)
             if (!predicate(item))
                 return NO;
@@ -136,6 +151,16 @@ typedef NSInteger ConcatState;
     }
     
     return NO;
+}
+
+- (void)_each:(Action)action {
+    if (single)
+        action(single);
+    else if (impl) {
+        id item = nil;
+        for (Func next = impl(); (item = next());)
+            action(item);
+    }
 }
 
 @end
@@ -276,7 +301,7 @@ yieldNext:
 }
 
 - (id)map:(Map)map {
-    return [[self seq] _reduce:^ id (id acc, id i) { return [acc _concat:map(i)]; } seed:[Seq empty]];
+    return [[self seq] _map:map];
 }
 
 - (id)filter:(Predicate)predicate {
@@ -285,10 +310,7 @@ yieldNext:
 }
 
 - (void)each:(Action)action {
-    [[self seq] map:^ id (id i) { 
-        action(i); 
-        return nil; 
-    }];
+    [[self seq] _each:action];
 }
 
 - (id)reduce:(Reduce)reduce seed:(id)seed {
@@ -311,7 +333,7 @@ yieldNext:
     return [[self seq] _any:predicate];
 }
 
-- (NSUInteger)count {
+- (NSUInteger)length {
     return [[[self seq] _reduce:^ id (id acc, id i) {
         return [NSNumber numberWithUnsignedInteger:[acc unsignedIntegerValue] + 1];
     } seed:[NSNumber numberWithUnsignedInteger:0]] unsignedIntegerValue];
