@@ -1,7 +1,7 @@
 #import "SequenceTests.h"
 #import "Sequence.h"
 
-@interface MockEnumerator : NSEnumerator {
+@interface MockEnumerator : NSArray {
     NSArray *items;
     NSUInteger position;
 }
@@ -29,7 +29,7 @@
 
 - (NSEnumerator *)objectEnumerator {
     position = 0;
-    return self;
+    return (NSEnumerator *)self;
 }
 
 @end
@@ -277,10 +277,10 @@
     STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
 }
 
-- (void)testSize {
+- (void)testLength {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"a", @"a", @"a", @"a", nil];
     
-    NSUInteger actual = [input size];
+    NSUInteger actual = [input length];
     NSUInteger expected = 5;
     
     STAssertEquals(actual, expected, @"size is correct");
