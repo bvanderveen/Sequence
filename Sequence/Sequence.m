@@ -71,6 +71,30 @@ typedef NSInteger ConcatState;
     assert(NO);
 }
 
+- (id)_filter:(Predicate)predicate {
+    if (self == emptySeq) return emptySeq;
+    
+    if (single)
+        return predicate(single) ? [single seq] : [Seq empty];
+    else if (impl) {
+        return [[[PullSeqImpl alloc] initWithPull:^ Func () {
+            Func next = impl();
+            return [[^ id () {
+                while (YES) {
+                    id i = next();
+                    if (!i) 
+                        return nil;
+                    
+                    if (predicate(i))
+                        return i;
+                }
+            } copy] autorelease];
+        }] autorelease];
+    }
+    
+    assert(NO);
+}
+
 - (id)_reduce:(Reduce)reduce seed:(id)seed {
     if (self == emptySeq) return seed;
     
@@ -161,6 +185,18 @@ typedef NSInteger ConcatState;
         for (Func next = impl(); (item = next());)
             action(item);
     }
+}
+
+- (NSUInteger)_length {
+    if (single)
+        return 1;
+    else if (impl) {
+        NSUInteger length = 0;
+        for (Func next = impl(); next();)
+            length++;
+        return length;
+    }
+    return 0;
 }
 
 @end
@@ -294,9 +330,7 @@ yieldNext:
 
 - (NSArray *)array {
     NSMutableArray *result = [NSMutableArray array];
-    id s = [self seq];
-    [s each:^ void (id i) { [result addObject:i]; }];
-    
+    [self each:^ void (id i) { [result addObject:i]; }];
     return [[result copy] autorelease];
 }
 
@@ -305,8 +339,7 @@ yieldNext:
 }
 
 - (id)filter:(Predicate)predicate {
-    return [[self seq] _reduce:
-            ^ id (id acc, id next) { return predicate(next) ? [acc _concat:[next seq]] : acc; } seed:[Seq empty]];
+    return [[self seq] _filter:predicate];
 }
 
 - (void)each:(Action)action {
@@ -334,9 +367,7 @@ yieldNext:
 }
 
 - (NSUInteger)length {
-    return [[[self seq] _reduce:^ id (id acc, id i) {
-        return [NSNumber numberWithUnsignedInteger:[acc unsignedIntegerValue] + 1];
-    } seed:[NSNumber numberWithUnsignedInteger:0]] unsignedIntegerValue];
+    return [[self seq] _length];
 }
 
 @end

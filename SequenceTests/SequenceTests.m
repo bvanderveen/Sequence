@@ -192,6 +192,38 @@
     [self assertActual:actual equalsExpected:expected];
 }
 
+- (void)testFilterSingle {
+    id input = [@"aa" seq];
+    id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
+    NSArray *expected = [NSArray arrayWithObject:@"aa"];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testFilterSingleNegative {
+    id input = [@"aaa" seq];
+    id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testFilterSingleItemArray {
+    id input = [NSArray arrayWithObject:@"aa"];
+    id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
+    NSArray *expected = [NSArray arrayWithObject:@"aa"];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
+- (void)testFilterSingleItemArrayNegative {
+    id input = [NSArray arrayWithObject:@"aaa"];
+    id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
+    id expected = [Seq empty];
+    
+    [self assertActual:actual equalsExpected:expected];
+}
+
 - (void)testFilter {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"aa", @"aaa", @"b", @"bb", @"cc", @"ccc", nil];
     id actual = [input filter:^ BOOL (id i) { return [i length] == 2; }];
@@ -277,13 +309,40 @@
     STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
 }
 
+- (void)testLengthZero {
+    id input = [[NSArray array] seq];
+    
+    NSUInteger actual = [input length];
+    NSUInteger expected = 0;
+    
+    STAssertEquals(actual, expected, @"length is correct");
+}
+
+- (void)testLengthSingleItemArray {
+    id input = [[NSArray arrayWithObjects:@"a", nil] seq];
+    
+    NSUInteger actual = [input length];
+    NSUInteger expected = 1;
+    
+    STAssertEquals(actual, expected, @"length is correct");
+}
+
+- (void)testLengthSingleItem {
+    id input = [@"a" seq];
+    
+    NSUInteger actual = [input length];
+    NSUInteger expected = 1;
+    
+    STAssertEquals(actual, expected, @"length is correct");
+}
+
 - (void)testLength {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"a", @"a", @"a", @"a", nil];
     
     NSUInteger actual = [input length];
     NSUInteger expected = 5;
     
-    STAssertEquals(actual, expected, @"size is correct");
+    STAssertEquals(actual, expected, @"length is correct");
 }
 
 - (void)testRangePositive {
