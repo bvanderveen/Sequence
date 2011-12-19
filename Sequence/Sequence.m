@@ -145,7 +145,6 @@ typedef NSInteger ConcatState;
     }
 }
 
-
 - (BOOL)_any:(Predicate)predicate {
     if (single)
         return predicate(single);
@@ -161,17 +160,20 @@ typedef NSInteger ConcatState;
     return NO;
 }
 
-- (BOOL)_all:(Predicate)predicate {    
+- (BOOL)_all:(Predicate)predicate {
     if (single)
         return predicate(single);
-    else if (impl) {
+    else if (impl) {   
         id item = nil;
+        BOOL evaluatedItem = NO;
         
-        for (Func next = impl(); (item = next());)
+        for (id (^next)() = impl(); (item = next());) {
+            evaluatedItem = YES;
             if (!predicate(item))
                 return NO;
+        }
         
-        return YES;
+        return evaluatedItem;
     }
     
     return NO;

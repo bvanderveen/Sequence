@@ -267,6 +267,35 @@
     STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
 }
 
+- (void)testAllEmpty {
+    id input = [Seq empty];
+    
+    BOOL actualResult = [input all:^ BOOL (id i) { return YES; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate true for all");
+}
+
+- (void)testAllEmptyNilItem {
+    id input = [Seq pull:^ Func() {
+        return [[^ id() { return nil; } copy] autorelease];
+    }];
+    
+    BOOL actualResult = [input all:^ BOOL (id i) { return YES; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate true for all");
+}
+
+- (void)testAllEmptyNegative {
+    id input = [Seq empty];
+    
+    BOOL actualResult = [input all:^ BOOL (id i) { return NO; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate false for all");
+}
+
 - (void)testAllNegative {
     NSArray *input = [NSArray arrayWithObjects:@"a", @"b", @"c", [NSNull null], @"a", @"d", nil];
     
@@ -307,6 +336,35 @@
     
     STAssertEquals(actualResult, expectedResult, @"all are not NSString");
     STAssertEquals(actualPosition, expectedPosition, @"enumerator shortcircuited");
+}
+
+- (void)testAnyEmpty {
+    id input = [Seq empty];
+    
+    BOOL actualResult = [input all:^ BOOL (id i) { return YES; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate true for any");
+}
+
+- (void)testAnyEmptyNegative {
+    id input = [Seq empty];
+    
+    BOOL actualResult = [input all:^ BOOL (id i) { return NO; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate false for any");
+}
+
+- (void)testAnyEmptyNilItem {
+    id input = [Seq pull:^ Func() {
+        return [[^ id() { return nil; } copy] autorelease];
+    }];
+    
+    BOOL actualResult = [input any:^ BOOL (id i) { return YES; }];
+    BOOL expectedResult = NO;
+    
+    STAssertEquals(actualResult, expectedResult, @"predicate true for all");
 }
 
 - (void)testLengthZero {
